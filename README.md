@@ -8,9 +8,13 @@ The solution supports two independent events and applies event-scoped retrieval 
 
 ## Features
 
-- RAG-based semantic retrieval using Sentence Transformers.
-- Two independent event knowledge bases.
-- Event-specific metadata filtering in ChromaDB.
+- Hybrid RAG retrieval combining dense vector search and BM25 lexical search.
+- Reciprocal Rank Fusion (RRF) to combine vector and lexical rankings.
+- Event-specific BM25 indexes built dynamically from stored event metadata.
+- Sentence Transformers for semantic embeddings.
+- ChromaDB for vector storage and event-scoped retrieval.
+- Metadata filtering to prevent cross-event information leakage.
+- Stopword removal for improved lexical retrieval.
 - Cross-event request detection and protection.
 - Mock booking-status API integration.
 - Multi-turn conversation history.
@@ -23,16 +27,21 @@ The solution supports two independent events and applies event-scoped retrieval 
 
 ## Architecture
 
+
 The application follows a modular service-based architecture:
 
 1. FastAPI receives attendee messages and validates the request.
 2. The security layer validates the selected event and checks for explicit cross-event requests.
 3. The chat service routes booking, escalation, and knowledge-related requests.
-4. The RAG retriever converts the query into an embedding using Sentence Transformers.
-5. ChromaDB retrieves relevant chunks using an event-specific metadata filter.
-6. The optional Ollama LLM generates an answer using retrieved context.
-7. If the LLM is disabled or unavailable, the application uses an extractive fallback.
-8. The conversation logger records each interaction.
+4. The RAG retriever generates a query embedding using Sentence Transformers.
+5. The retriever performs two retrieval operations:
+   - Dense vector search through ChromaDB, filtered by event ID.
+   - BM25 lexical search through the selected event's independent BM25 index.
+6. Reciprocal Rank Fusion (RRF) combines the rankings from both retrieval methods.
+7. A similarity threshold filters weak vector matches, while positive BM25 matches can also qualify as retrieval candidates.
+8. The optional Ollama LLM generates an answer using retrieved event context.
+9. If the LLM is disabled or unavailable, the application uses an extractive fallback.
+10. The conversation logger records each interaction.
 
 ### Architecture documents
 
@@ -46,7 +55,9 @@ The application follows a modular service-based architecture:
 |---|---|---|
 | Backend | FastAPI | REST API |
 | Embeddings | Sentence Transformers | Semantic representations |
-| Vector database | ChromaDB | Similarity search and event filtering |
+| Vector database | ChromaDB | Vector similarity search and event filtering |
+| Lexical retrieval | BM25 / rank-bm25 | Keyword-based retrieval |
+| Ranking | Reciprocal Rank Fusion | Combines vector and BM25 rankings |
 | LLM | Ollama / Qwen (optional) | Context-grounded generation |
 | Booking | Python mock function | Booking-status lookup |
 | Validation | Pydantic | Request validation |
@@ -57,8 +68,8 @@ The application follows a modular service-based architecture:
 ### 1. Clone the repository
 
 ```powershell
-git clone <YOUR_PRIVATE_REPOSITORY_URL>
-cd mci-event-assistant
+git clone https://github.com/deepuknsl5/mci-events-hospitality-ai-assistant.git
+cd mci-events-hospitality-ai-assistant
 ```
 
 ### 2. Create and activate a virtual environment
@@ -128,7 +139,7 @@ By default, LLM generation is disabled to reduce local hardware requirements. Se
 
 ## API examples
 
-### Event A — Registration information
+### Event A - Registration information
 
 ```json
 {
@@ -140,7 +151,7 @@ By default, LLM generation is disabled to reduce local hardware requirements. Se
 
 Expected information: Registration opens at 8:00 AM.
 
-### Event B — Venue information
+### Event B - Venue information
 
 ```json
 {
@@ -178,12 +189,15 @@ The application should refuse to disclose information belonging to another event
 ## Hallucination reduction
 
 - The assistant uses retrieved event information as its answer context.
-- A similarity threshold is configured to filter weak retrieval matches.
+- Hybrid retrieval combines semantic vector similarity and BM25 keyword matching.
+- Reciprocal Rank Fusion combines both retrieval rankings.
+- A configurable similarity threshold filters weak vector matches.
+- Positive BM25 keyword matches can also qualify as retrieval candidates, even when vector similarity is below the threshold.
 - The optional LLM is instructed to answer using only supplied event context.
 - If no relevant context is retrieved, the assistant returns a safe fallback.
 - When LLM generation is disabled, an extractive response is used instead of free-form generation.
 
-The similarity threshold is a prototype configuration and should be calibrated using a labelled evaluation dataset.
+The retrieval threshold and BM25 relevance behavior are prototype configurations and should be calibrated using a labelled evaluation dataset.
 
 ## Prompt injection prevention
 

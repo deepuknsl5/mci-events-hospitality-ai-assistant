@@ -1,17 +1,39 @@
+
 flowchart TD
     A[Attendee] --> B[FastAPI]
-    B --> C[Validate session and event context]
-    C --> D{Request type}
+    B --> C[Validate Session and Event Context]
+    C --> S{Security Validation}
+    S -->|Invalid Event or Cross-Event Request| X[Reject Request]
+    S -->|Valid Request| D{Request Type}
+
     D -->|Booking| E[Mock Booking API]
-    D -->|Knowledge question| F[Event-filtered RAG]
-    F --> G[Sentence Transformers]
-    G --> H[(ChromaDB: event_id metadata filter)]
-    H --> I{Relevant context?}
-    I -->|Yes| J[Optional local Ollama LLM]
-    I -->|No| K[Safe fallback]
-    E --> L[Response assembly]
-    J --> L
-    K --> L
-    C --> M[Escalation rules]
-    L --> N[Attendee response]
-    B --> O[JSONL conversation logging]
+    D -->|Knowledge Question| F[Hybrid RAG Retriever]
+    D -->|VIP or Dissatisfaction| G[Escalation Service]
+
+    F --> H[Generate Query Embedding]
+    H --> I[(ChromaDB Vector Search)]
+    F --> J[Event-Specific BM25 Index]
+    
+    I --> K[Reciprocal Rank Fusion]
+    J --> K
+
+    K --> L[Similarity Threshold and Lexical Match Filtering]
+    L --> M{Relevant Context?}
+
+    M -->|Yes| N[Optional Ollama Qwen LLM]
+    M -->|No| O[Safe Extractive Fallback]
+
+    E --> P[Response Assembly]
+    G --> P
+    N --> P
+    O --> P
+    X --> P
+
+    P --> Q[Attendee Response]
+    B --> R[JSONL Conversation Logging]
+
+    T[Event Knowledge JSON] --> U[Ingestion Pipeline]
+    U --> V[Sentence Transformers]
+    V --> I
+    U --> W[Dynamic Event-Specific BM25 Indexing]
+    W --> J

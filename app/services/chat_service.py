@@ -3,7 +3,7 @@ from app.rag.retriever import EventRetriever
 from app.security.event_isolation import validate_event_id, requests_other_event
 from app.services.booking_service import get_booking_status
 from app.services.escalation_service import detect_escalation
-from app.services.llm_service import generate_answer
+from app.services.llm_service import generate_answer, generate_history_answer
 from app.logging.conversation_logger import log_turn
 
 class ChatService:
@@ -54,13 +54,20 @@ class ChatService:
             context = [item["content"] for item in matches]
 
             if not context:
-                answer = (
-                    "I don't have enough verified information "
-                    "to answer that question. Please contact "
-                    "the event support team."
-                )
+                # First, check whether the question refers to this
+                # session's previous conversation.
+                answer = generate_history_answer(message, history)
+
+                if not answer:
+                    answer = (
+                        "I don't have enough verified information "
+                        "to answer that question. Please contact "
+                        "the event support team."
+                    )
+
             else:
                 answer = generate_answer(message, context, history)
+
                 if not answer:
                     answer = (
                         "According to the event information: "

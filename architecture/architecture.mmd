@@ -1,0 +1,17 @@
+flowchart TD
+    A[Attendee] --> B[FastAPI]
+    B --> C[Validate session and event context]
+    C --> D{Request type}
+    D -->|Booking| E[Mock Booking API]
+    D -->|Knowledge question| F[Event-filtered RAG]
+    F --> G[Sentence Transformers]
+    G --> H[(ChromaDB: event_id metadata filter)]
+    H --> I{Relevant context?}
+    I -->|Yes| J[Optional local Ollama LLM]
+    I -->|No| K[Safe fallback]
+    E --> L[Response assembly]
+    J --> L
+    K --> L
+    C --> M[Escalation rules]
+    L --> N[Attendee response]
+    B --> O[JSONL conversation logging]

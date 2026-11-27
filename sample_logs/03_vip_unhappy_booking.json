@@ -1,0 +1,14 @@
+{
+  "event_id": "event_a",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I am a VIP sponsor and unhappy. My booking ID is BK101."
+    },
+    {
+      "role": "assistant",
+      "content": "Booking BK101 for event_a is confirmed. Your request has been flagged for high priority."
+    }
+  ],
+  "expected_escalation": "HIGH_PRIORITY"
+}

@@ -1,0 +1,14 @@
+{
+  "event_id": "event_a",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "When does registration open?"
+    },
+    {
+      "role": "assistant",
+      "content": "According to the event information: Registration opens at 8:00 AM."
+    }
+  ],
+  "expected_retrieval_topic": "registration"
+}
